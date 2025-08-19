@@ -1,10 +1,8 @@
 # SEO Middleware for Next.js
 
-__SO Middleware__ is a lightweight Next.js package designed to improve SEO scores for traditional SERPs (a.k.a. Google, Bing, Yahoo, etc.) and modern AI agents and bots (a.k.a. ChatGPT, Grok, Perplexity, etc.).
+__SEO Middleware__ is a lightweight Next.js package designed to improve SEO scores for traditional SERPs (a.k.a. Google, Bing, Yahoo, etc.) and modern AI agents and bots (a.k.a. ChatGPT, Grok, Perplexity, etc.).
 
-This middleware is powered by [`ostr.io` pre-rendering engine](https://ostr.io/info/prerendering) that ensures search and AI crawlers receive fully-rendered HTML pages, not just an empty skeleton. This bridges the gap between client-rendered apps and the indexing and link preview requirements of platforms like Google, Facebook, Twitter, and etc.
-
-When paired with the global CDN and smart caching layer of [`ostr.io`](https://ostr.io), `seo-middleware-nextjs` significantly increases crawling budget, improves SEO scores, link previews, and Web Vitals/Lighthouse performance metrics (like TTFB) — all without changes in the existing codebase.
+This middleware is powered by [`ostr.io` pre-rendering engine](https://ostr.io/info/prerendering) and paired with the global CDN and smart caching layer. `seo-middleware-nextjs` establishes access to Pre-rendering Engine that significantly increases crawling budget, improves SEO scores, link previews, and Web Vitals/Lighthouse performance metrics (like TTFB) — all without changes in the existing codebase.
 
 SEO middleware intelligently reroutes bot traffic to `ostr.io` rendering endpoints, minimizing server load, reducing database queries, and lowering infrastructure costs.
 
@@ -12,30 +10,30 @@ SEO middleware intelligently reroutes bot traffic to `ostr.io` rendering endpoin
 
 - 🕸 Executes JavaScript — get rendered HTML page and its content; Outperforms SSR and allows to reduce server load by disabling SSR;
 - 🏎️ Expands Crawl Budget — Improves timings for dynamic and static pages via advanced CDN and caching;
-- ✨ Boosts Web Vitals and Lighthouse scores;
-- 🎛️ Improve TTFB, LCP, INP, CLS, and other Web Vitals and LightHouse metrics positively enhancing overall SEO score;
+- 🚀 Boosts Web Vitals and Lighthouse scores;
+- 🎛️ Improves TTFB, LCP, INP, CLS, and other Web Vitals and LightHouse metrics positively enhancing overall SEO score;
 - 🖥 Supports PWAs and SPAs;
 - 📱 Supports mobile-like crawlers;
 - 💅 Supports [`styled-components`](https://styled-components.com);
 - ⚡️ Supports [AMP (Accelerated Mobile Pages)](https://www.ampproject.org);
 - 🤓 Works with `Content-Security-Policy` and other complex front-end security rules;
-- 📦 This package implemented in strict TypeScipt and exports all necessary types;
+- 📦 This package implemented in strict TypeScript and exports all necessary types;
 - ❤️ Search engines and social network crawlers love optimized pages that delivered in blazingly-fast manner;
 - 📱 Consistent link previews in messaging apps, like iMessage, Messages, Facebook, Slack, Telegram, WhatsApp, Viber, VK, Twitter, and other apps;
 - 💻 Image, title, and description previews for links posted at social networks, like Facebook, X/Twitter, Instagram, and other social networks.
 
 ## Related packages and docs
 
-- [Detailed Pre-rendering Engine Documentation](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/README.md)
-- __Related Packages__
-  - [Node.js Integration via NPM package](https://github.com/veliovgroup/spiderable-middleware/blob/master/README.md)
-  - [Meteor.js Integration via Atmosphere Package](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/meteor-atmosphere.md)
+- __[Detailed Pre-rendering Engine Documentation](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/README.md)__
 - __Cloud Integrations__
   - [CloudFlare Worker Integration](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/cloudflare-worker.md)
   - [Netlify Integration](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/netlify-prerendering.md)
 - __Web Server Integrations__
   - [Nginx Integration](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/nginx.md)
   - [Apache Integration](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/apache.md)
+- __Related Packages__
+  - [Node.js Integration via NPM package](https://github.com/veliovgroup/spiderable-middleware/blob/master/README.md)
+  - [Meteor.js Integration via Atmosphere Package](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/meteor-atmosphere.md)
 
 ## ToC
 
@@ -44,20 +42,19 @@ SEO middleware intelligently reroutes bot traffic to `ostr.io` rendering endpoin
 - [__API__](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#api)
   - [Constructor `new SEOMiddleware()`](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#constructor)
   - [TS Types](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#types)
-- [Speed-up rendering](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/optimization.md)
-- [Detect request from Prerendering engine during runtime](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#detect-request-from-pre-rendering-engine-during-runtime)
-- [Detect type of Prerendering engine](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#detect-type-of-the-pre-rendering-engine)
-- [AMP Support](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#amp-support)
-- [Rendering Endpoints](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#rendering-endpoints)
+- [Speed-up rendering](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#speed-up-rendering)
+- [Detect request from Pre-rendering engine during runtime](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#detect-request-from-pre-rendering-engine-during-runtime)
+- [Detect type of Pre-rendering engine](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#detect-type-of-the-pre-rendering-engine)
+- [Debugging](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#debugging)
 
 ## About Package
 
-This package works as an "edge function", intercepting requests from crawlers and social media bots received by Next.js application. It seamlessly proxies those requests to a pre-rendering service, which returns fully-rendered static HTML — optimized for indexing and rich previews.
+This package works as an "edge function", intercepting requests from crawlers and social media bots received by Next.js application. It seamlessly proxies those requests to a pre-rendering engine, which returns fully-rendered static HTML — optimized for indexing and rich previews.
 
 Built with developers in mind, `seo-middleware-nextjs` is lightweight, well-structured, and easy to customize. Whether you're scaling a production app or prototyping, it's designed to be hackable and flexible enough to fit any project. By offloading bot traffic to the pre-rendering engine, it helps reduce backend load and improve server performance effortlessly.
 
 > [!TIP]
-> This package was originally developed for pre-rendering service by [`ostr.io`](https://ostr.io). But it's not limited to, and can proxy-pass requests to any other rendering-endpoint.
+> This package was originally developed for pre-rendering engine by [`ostr.io`](https://ostr.io). But it's not limited to, and can proxy-pass requests to any other rendering-endpoint.
 
 ## Installation
 
@@ -104,7 +101,7 @@ export const config = {
 ```
 
 > [!IMPORTANT]
-> `config.matcher` can not be set to variable or during runtime; It can hold array of paths or RegExp-alike string, see [official Next.js middleware matcher docs](https://nextjs.org/docs/app/api-reference/file-conventions/middleware#matcher) for more details
+> `config.matcher` can not be set to variable or changed/assigned during runtime; It can hold array of paths or RegExp-alike string, see [official Next.js middleware matcher docs](https://nextjs.org/docs/app/api-reference/file-conventions/middleware#matcher) for more details
 
 
 > [!TIP]
@@ -112,7 +109,7 @@ export const config = {
 
 ## API
 
-Create new instance and pass middleware to server's routes chain;
+Create new `SEOMiddleware` instance in `/src/middleware.ts` file.
 
 ### *Constructor*
 
@@ -121,7 +118,7 @@ new SEOMiddleware(opts: SEOMiddlewareOptions);
 ```
 
 - `opts` {*SEOMiddlewareOptions*} - Configuration options
-- `opts.auth` {*string*} - Auth string in next format: `Basic xxx...xxx`. Can be set via an environment variables: `SPIDERABLE_SERVICE_AUTH` or `PRERENDER_SERVICE_AUTH` or `OSTR_AUTH`.
+- `opts.auth` {*string*} - Auth string in the next format: `Basic xxx...xxx`. Can be set via an environment variables: `SPIDERABLE_SERVICE_AUTH` or `PRERENDER_SERVICE_AUTH` or `OSTR_AUTH`.
 - `opts.renderingEndpoint` {*string*} - Valid URL to Pre-rendering engine. Default: `https://render.ostr.io`
 - `opts.keepGetQuery` {*Boolean*} — Toggle support for get-query. Default `true`; It's safe to set to `false` if your app doesn't use get-query for its functionality
 - `opts.supportEscapedFragment` {*Boolean*} — Toggle support for `?_escaped_fragment_=` get query. Default `true` (*recommended to keep it `true`*)
@@ -131,7 +128,7 @@ new SEOMiddleware(opts: SEOMiddlewareOptions);
 - `opts.ignoredExtensions` {*string[]*} — An array of strings with static files extensions that should get ignored by SEO Middleware. The default value holds all modern files extensions
 - `opts.logger` {*Console|Winston|Pino*} — Logger facility for info messages, warnings, and errors. Default: `console`
 
-```js
+```ts
 // inside middleware.ts file:
 import { SEOMiddleware } from 'seo-middleware-nextjs';
 
@@ -200,9 +197,9 @@ export declare class SEOMiddleware {
 }
 ```
 
-#### Configuration via env.vars
+### Configuration via env.vars
 
-Authentication token can get set via various environment variables:
+Authentication token can be set via various environment variables:
 
 ```sh
 OSTRIO_AUTH='Basic xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
@@ -262,7 +259,7 @@ For more details on `IS_PRERENDERING_TYPE` variable [see this documentation](htt
 Additionally:
 
 - Set `auth` to `Basic dGVzdDp0ZXN0` (*credentials for testing*)
-- Set `renderingEndpoint` to `https://render-bypass.ostr.io` avoiding cached results, [read more about rendering endpoints](https://github.com/veliovgroup/spiderable-middleware#rendering-endpoints)
+- Set `renderingEndpoint` to `https://render-bypass.ostr.io` avoiding cached results, [read more about rendering endpoints](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/rendering-endpoints.md)
 
 ```ts
 import { SEOMiddleware } from 'seo-middleware-nextjs';
@@ -275,3 +272,5 @@ const seoMiddleware = new SEOMiddleware({
 
 export const middleware = seoMiddleware.createMiddleware();
 ```
+
+__Read [Full Pre-rendering Engine Documentation](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/README.md)__
