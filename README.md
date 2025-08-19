@@ -273,4 +273,6 @@ const seoMiddleware = new SEOMiddleware({
 export const middleware = seoMiddleware.createMiddleware();
 ```
 
+----
+
 __Read [Full Pre-rendering Engine Documentation](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/README.md)__
