@@ -1,0 +1,84 @@
+{
+  "name": "seo-middleware-nextjs",
+  "version": "1.0.0",
+  "description": "Next.js SEO — boosting organic traffic from SERPs, AI Chat Bots, and GPT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/veliovgroup/seo-middleware-nextjs.git"
+  },
+  "files": [
+    "dist",
+    "package.json",
+    "README.md"
+  ],
+  "keywords": [
+    "SEO",
+    "middleware",
+    "web vitals",
+    "lighthouse",
+    "spiderable",
+    "crawl",
+    "crawlble",
+    "prerender",
+    "pre-rendering",
+    "prerendering",
+    "ostrio",
+    "ostr.io",
+    "next",
+    "nextjs",
+    "next.js",
+    "ssr",
+    "server side rendering",
+    "_escaped_fragment_"
+  ],
+  "tags": [
+    "SEO",
+    "middleware",
+    "web vitals",
+    "lighthouse",
+    "spiderable",
+    "crawl",
+    "crawlble",
+    "prerender",
+    "pre-rendering",
+    "prerendering",
+    "ostrio",
+    "ostr.io",
+    "next",
+    "nextjs",
+    "next.js",
+    "ssr",
+    "server side rendering",
+    "_escaped_fragment_"
+  ],
+  "homepage": "https://github.com/veliovgroup/seo-middleware-nextjs",
+  "bugs": {
+    "url": "https://github.com/veliovgroup/seo-middleware-nextjs/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "author": "dr.dimitru (https://veliovgroup.com)",
+  "license": "BSD-3-Clause",
+  "devDependencies": {
+    "next": "^15.4.7",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.9.2"
+  },
+  "peerDependencies": {
+    "next": ">=13"
+  },
+  "dependencies": {
+    "modern-ahocorasick": "^2.0.4"
+  }
+}

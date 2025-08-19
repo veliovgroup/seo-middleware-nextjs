@@ -16,5 +16,5 @@ export const middleware = seoMiddleware.createMiddleware();
 // OR USE IS AS "ONLY" PATHs MATCHING, EX.: '/(articles/?.*|products/?.*|only-this-path)' {string}
 // @see https://nextjs.org/docs/app/api-reference/file-conventions/middleware#matcher
 export const config = {
-  matcher: '/((?!api|_next/static|_next/image|_next/webpack-hmr|\\.well-known).*)'
+  matcher: '/((?!api|_next/static|_next/image|_next/webpack-hmr|\\.well-known|favicon.ico).*)'
 };
