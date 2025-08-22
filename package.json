@@ -1,6 +1,6 @@
 {
   "name": "seo-middleware-nextjs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Next.js SEO — boosting organic traffic from SERPs, AI Chat Bots, and GPT",
   "type": "module",
   "sideEffects": false,

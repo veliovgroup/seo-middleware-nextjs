@@ -14,7 +14,7 @@ const DICT = {
   dot: '.',
   empty: '',
   colon: ':',
-  allowedMethods: ['GET', 'HEAD'],
+  allowedMethods: new Set(['GET', 'HEAD']),
   args: { bot: '&bot=' },
   service: {
     origin: 'ostr.io',
@@ -179,7 +179,7 @@ export class SEOMiddleware {
   }
 
   private shouldPrerender(req: NextRequest, url: URL): boolean {
-    if (!DICT.allowedMethods.includes(req.method)) {
+    if (!DICT.allowedMethods.has(req.method)) {
       this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [shouldPrerender]', url.toString(), 'METHOD NOT ALLOWED');
       return false;
     }
