@@ -1,6 +1,6 @@
 {
   "name": "seo-middleware-nextjs",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Next.js SEO — boosting organic traffic from SERPs, AI Chat Bots, and GPT",
   "type": "module",
   "sideEffects": false,
@@ -71,9 +71,9 @@
   "author": "dr.dimitru (https://veliovgroup.com)",
   "license": "BSD-3-Clause",
   "devDependencies": {
-    "next": "^15.4.7",
+    "next": "^15.5.5",
     "rimraf": "^6.0.1",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "next": ">=13"

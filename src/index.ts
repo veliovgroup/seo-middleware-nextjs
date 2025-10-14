@@ -36,6 +36,7 @@ export type SEOMiddlewareLogger = Pick<Console, 'debug' | 'info' | 'warn' | 'err
 
 export interface SEOMiddlewareOptions {
   auth?: string;
+  rootURL?: string;
   supportEscapedFragment?: boolean;
   keepGetQuery?: boolean;
   ignoredPaths?: false | RegExp;
@@ -49,6 +50,7 @@ export interface SEOMiddlewareOptions {
 
 export class SEOMiddleware {
   auth: string;
+  rootURL: string | false;
   supportEscapedFragment: boolean;
   keepGetQuery: boolean;
   ignoredPaths: false | RegExp;
@@ -71,15 +73,21 @@ export class SEOMiddleware {
       throw new Error('[seo-middleware-nextjs] {auth} option is misconfigured or wrong value is used!');
     }
 
+    this.rootURL = opts.rootURL ?? false;
+    if (this.rootURL && this.rootURL.endsWith(DICT.slash)) {
+      this.rootURL = this.rootURL.slice(0, -1);
+    }
+
+    this.renderingEndpoint = opts.renderingEndpoint ?? RENDERING_ENDPOINT;
+    if (this.renderingEndpoint.endsWith(DICT.slash)) {
+      this.renderingEndpoint = this.renderingEndpoint.slice(0, -1);
+    }
+
     this.supportEscapedFragment = opts.supportEscapedFragment ?? true;
     this.keepGetQuery = opts.keepGetQuery ?? true;
     this.ignoredPaths = opts.ignoredPaths ?? false;
     this.ignoredExtensions = new Set(opts.ignoredExtensions ?? IGNORE_EXTENSIONS);
     this.botAgents = new AhoCorasick(opts.botAgents ?? BOT_AGENTS);
-    this.renderingEndpoint = opts.renderingEndpoint ?? RENDERING_ENDPOINT;
-    if (this.renderingEndpoint.endsWith(DICT.slash)) {
-      this.renderingEndpoint = this.renderingEndpoint.slice(0, -1);
-    }
     this.renderingBase = `${this.renderingEndpoint}/?url=`;
     this.retries = opts.retries ?? 2;
     this.debug = opts.debug || process.env.DEBUG === 'true' || false;
@@ -102,7 +110,7 @@ export class SEOMiddleware {
       }
 
       const ua = (req.headers.get(DICT.headers.ua) || DICT.empty).toLowerCase();
-      let fetchUrl = `${url.origin}`;
+      let fetchUrl = `${self.rootURL || url.origin}`;
       if (self.supportEscapedFragment && typeof escapedFragment === 'string') {
         url.searchParams.delete(DICT.escapedFragment);
 

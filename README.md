@@ -118,7 +118,8 @@ new SEOMiddleware(opts: SEOMiddlewareOptions);
 ```
 
 - `opts` {*SEOMiddlewareOptions*} - Configuration options
-- `opts.auth` {*string*} - Auth string in the next format: `Basic xxx...xxx`. Can be set via an environment variables: `SPIDERABLE_SERVICE_AUTH` or `PRERENDER_SERVICE_AUTH` or `OSTR_AUTH`.
+- `opts.auth` {*string*} - Auth string in the next format: `Basic xxx...xxx`. Can be set via an environment variables: `SPIDERABLE_SERVICE_AUTH` or `PRERENDER_SERVICE_AUTH` or `OSTR_AUTH`
+- `opts.rootURL` {*string*} - FQDN URL to the root of your website. Default: `false` (*auto-detected from `NextRequest` object*)
 - `opts.renderingEndpoint` {*string*} - Valid URL to Pre-rendering engine. Default: `https://render.ostr.io`
 - `opts.keepGetQuery` {*boolean*} — Toggle support for get-query. Default `true`; It's safe to set to `false` if your app doesn't use get-query for its functionality
 - `opts.supportEscapedFragment` {*boolean*} — Toggle support for `?_escaped_fragment_=` get query. Default `true` (*recommended to keep it `true`*)
@@ -136,6 +137,7 @@ import { SEOMiddleware } from 'seo-middleware-nextjs';
 // INITIATE SEOMiddleware CLASS
 const seoMiddleware = new SEOMiddleware({
   auth: 'Basic dGVzdDp0ZXN0',
+  rootURL: 'https://example.com',
   renderingEndpoint: 'https://render.ostr.io',
   ignoredPaths: /\/images\/|\/uploads\//,
   supportEscapedFragment: true,
@@ -170,6 +172,7 @@ export type SEOMiddlewareLogger = Pick<Console, 'debug' | 'info' | 'warn' | 'err
 
 export interface SEOMiddlewareOptions {
   auth?: string;
+  rootURL?: false | string;
   supportEscapedFragment?: boolean;
   keepGetQuery?: boolean;
   ignoredPaths?: false | RegExp;
@@ -183,6 +186,7 @@ export interface SEOMiddlewareOptions {
 
 export declare class SEOMiddleware {
   auth: string;
+  rootURL?: false | string;
   supportEscapedFragment: boolean;
   keepGetQuery: boolean;
   ignoredPaths: false | RegExp;
