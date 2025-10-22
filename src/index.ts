@@ -26,7 +26,8 @@ const DICT = {
     auth: 'authorization',
   },
   keepReqHeaders: ['user-agent', 'accept-language'],
-  ignoreRespHeaders: ['age', 'alt-svc', 'cache-status', 'cf-connecting-ip', 'cf-ipcountry', 'cf-cache-status', 'cf-ray', 'cf-request-id', 'cnection', 'cneonction', 'connection', 'content-encoding', 'content-length', 'date', 'etag', 'expect-ct', 'expires', 'keep-alive', 'last-modified', 'link', 'nel', 'nncoection', 'pragma', 'server', 'set-cookie', 'status', 'transfer-encoding', 'report-to', 'vary', 'via', 'www-authenticate', 'x-accel-buffering', 'x-accel-charset', 'x-accel-expires', 'x-accel-limit-rate', 'x-accel-redirect', 'x-ostrio-domain', 'x-powered-by', 'x-preprender-status', 'x-prerender-status', 'x-real-ip', 'x-runtime'],
+  ignoreRespHeaders: new Set(['age', 'alt-svc', 'cache-status', 'cf-connecting-ip', 'cf-ipcountry', 'cf-cache-status', 'cf-ray', 'cf-request-id', 'cnection', 'cneonction', 'connection', 'content-encoding', 'content-length', 'date', 'etag', 'expect-ct', 'expires', 'keep-alive', 'last-modified', 'link', 'nel', 'nncoection', 'pragma', 'server', 'set-cookie', 'status', 'transfer-encoding', 'report-to', 'vary', 'via', 'www-authenticate', 'x-accel-buffering', 'x-accel-charset', 'x-accel-expires', 'x-accel-limit-rate', 'x-accel-redirect', 'x-ostrio-domain', 'x-powered-by', 'x-preprender-status', 'x-prerender-status', 'x-real-ip', 'x-runtime', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailer', 'upgrade', 'proxy-connection']),
+  middlewareHeaderStartsWith: 'x-middleware-',
 };
 
 const beginningSlashRe = /^\//;
@@ -150,8 +151,11 @@ export class SEOMiddleware {
 
         if (res) {
           const outHeaders = new Headers(res.headers);
-          for (const h of DICT.ignoreRespHeaders) {
-            outHeaders.delete(h);
+          for (const k of outHeaders.keys()) {
+            const l = k.toLowerCase();
+            if (DICT.ignoreRespHeaders.has(l) || l.startsWith(DICT.middlewareHeaderStartsWith)) {
+              outHeaders.delete(k);
+            }
           }
 
           return new NextResponse(res.body, {
