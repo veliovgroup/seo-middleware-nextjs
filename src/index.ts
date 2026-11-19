@@ -3,6 +3,10 @@ import { NextResponse } from 'next/server.js';
 import AhoCorasick from 'modern-ahocorasick';
 
 const RENDERING_ENDPOINT = 'https://render.ostr.io';
+const DEFAULT_RETRIES = 2;
+// Vercel Edge Middleware must start a response within 25 seconds. 20 seconds
+// leaves room to fall back to the app before the platform kills the request
+const DEFAULT_TIMEOUT = 20000;
 
 // Static-asset extensions skipped before bot detection. Kept in sync with the
 // canonical list:
@@ -61,6 +65,7 @@ export interface SEOMiddlewareOptions {
   botAgents?: string[];
   renderingEndpoint?: string;
   retries?: number;
+  timeout?: number;
   debug?: boolean;
 }
 
@@ -76,6 +81,7 @@ export class SEOMiddleware {
   renderingEndpoint: string;
   renderingBase: string;
   retries: number;
+  timeout: number;
   debug: boolean;
 
   constructor(opts: SEOMiddlewareOptions) {
@@ -106,7 +112,17 @@ export class SEOMiddleware {
     // Matching runs on the lowercased User-Agent, so patterns are lowercased too. An empty string makes the AhoCorasick constructor throw
     this.botAgents = new AhoCorasick((opts.botAgents ?? BOT_AGENTS).map((agent) => `${agent}`.toLowerCase()).filter(Boolean));
     this.renderingBase = `${this.renderingEndpoint}/?url=`;
-    this.retries = opts.retries ?? 2;
+    this.retries = opts.retries ?? DEFAULT_RETRIES;
+    if (!Number.isInteger(this.retries) || this.retries < 0) {
+      this.logger.warn('[seo-middleware-nextjs] [WARN] [new SEOMiddleware()]', `{retries} must be a non-negative integer, falling back to ${DEFAULT_RETRIES}`);
+      this.retries = DEFAULT_RETRIES;
+    }
+
+    this.timeout = opts.timeout ?? DEFAULT_TIMEOUT;
+    if (!Number.isFinite(this.timeout) || this.timeout <= 0) {
+      this.logger.warn('[seo-middleware-nextjs] [WARN] [new SEOMiddleware()]', `{timeout} must be a positive number of milliseconds, falling back to ${DEFAULT_TIMEOUT}`);
+      this.timeout = DEFAULT_TIMEOUT;
+    }
     this.debug = opts.debug || process.env.DEBUG === 'true' || false;
 
     // Never log `opts` as is, it holds the auth token
@@ -117,6 +133,7 @@ export class SEOMiddleware {
       keepGetQuery: this.keepGetQuery,
       ignoredPaths: this.ignoredPaths,
       retries: this.retries,
+      timeout: this.timeout,
     });
   }
 
@@ -262,24 +279,39 @@ export class SEOMiddleware {
   }
 
   private async sendRequest(url: URL, headers: Headers, method: string): Promise<Response|null> {
+    // `retries` is the total number of attempts, `1` sends a single request
     const maxAttempts = Math.max(1, this.retries);
-    let lastError: unknown;
+    // One deadline for all attempts, so retries never stretch past `timeout`.
+    // AbortController with setTimeout works in Edge and Node.js runtimes alike
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeout);
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      const signal = AbortSignal.timeout(25000);
-      this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [sendRequest]', url.toString(), `SENDING (attempt ${attempt}/${maxAttempts})`);
+    try {
+      for (let attempt = 1; ; attempt++) {
+        this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [sendRequest]', url.toString(), `SENDING (attempt ${attempt}/${maxAttempts})`);
 
-      try {
-        // `redirect: 'manual'` hands the renderer's 3xx with its `Location` to the bot,
-        // following it would serve the target page under the requested URL
-        return await fetch(url, { method, headers, signal, redirect: 'manual' });
-      } catch (requestError) {
-        lastError = requestError;
-        this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [sendRequest]', url.toString(), 'CAUGHT AN ERROR', requestError);
+        try {
+          // `redirect: 'manual'` hands the renderer's 3xx with its `Location` to the bot,
+          // following it would serve the target page under the requested URL
+          return await fetch(url, { method, headers, signal: controller.signal, redirect: 'manual' });
+        } catch (requestError) {
+          if (controller.signal.aborted) {
+            // A timed out renderer is busy or down, another attempt would only add delay
+            this.logger.warn('[seo-middleware-nextjs] [WARN] [sendRequest]', url.toString(), `NO RESPONSE WITHIN ${this.timeout}ms`);
+            return null;
+          }
+
+          if (attempt >= maxAttempts) {
+            this.logger.warn('[seo-middleware-nextjs] [WARN] [sendRequest]', url.toString(), `CAUGHT AN ERROR AFTER ${attempt} ATTEMPT(S)`, requestError);
+            return null;
+          }
+
+          // Connection errors before a response arrived, like a reset keep-alive socket, are worth another attempt
+          this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [sendRequest]', url.toString(), 'CAUGHT AN ERROR, RETRYING', requestError);
+        }
       }
+    } finally {
+      clearTimeout(timer);
     }
-
-    this.logger.warn('[seo-middleware-nextjs] [WARN] [sendRequest]', url.toString(), 'CAUGHT AN ERROR AFTER RETRY', lastError);
-    return null;
   }
 }
