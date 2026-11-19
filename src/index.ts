@@ -1,5 +1,5 @@
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server.js';
+import { NextResponse } from 'next/server.js';
 import AhoCorasick from 'modern-ahocorasick';
 
 const RENDERING_ENDPOINT = 'https://render.ostr.io';
@@ -50,7 +50,7 @@ export type SEOMiddlewareLogger = Pick<Console, 'debug' | 'info' | 'warn' | 'err
 
 export interface SEOMiddlewareOptions {
   auth?: string;
-  rootURL?: string;
+  rootURL?: false | string;
   supportEscapedFragment?: boolean;
   keepGetQuery?: boolean;
   ignoredPaths?: false | RegExp;
