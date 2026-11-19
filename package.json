@@ -17,7 +17,8 @@
     "build": "tsc -p tsconfig.json",
     "clean": "rimraf dist",
     "prepublishOnly": "npm run clean && npm run build",
-    "test": "mocha"
+    "test": "npm run build && npm run test:types && node --test test/*.test.mjs",
+    "test:types": "tsc -p test/tsconfig.json --noEmit"
   },
   "repository": {
     "type": "git",
