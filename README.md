@@ -39,6 +39,8 @@ SEO middleware intelligently reroutes bot traffic to `ostr.io` rendering endpoin
 
 - [Installation](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#installation)
 - [Basic usage](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#usage)
+  - [Next.js 16 and newer: `proxy.ts`](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#nextjs-16-and-newer-proxyts)
+  - [Next.js 13, 14, and 15: `middleware.ts`](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#nextjs-13-14-and-15-middlewarets)
 - [__API__](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#api)
   - [Constructor `new SEOMiddleware()`](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#constructor)
   - [TS Types](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#types)
@@ -70,19 +72,44 @@ yarn add seo-middleware-nextjs
 
 ## Usage
 
-Setup SEO middleware in few lines of code, see [this ready to copy-paste `middleware.ts` file](https://github.com/veliovgroup/seo-middleware-nextjs/blob/master/examples/middleware.ts)
+Setup SEO middleware in few lines of code, see ready to copy-paste [`proxy.ts`](https://github.com/veliovgroup/seo-middleware-nextjs/blob/master/examples/proxy.ts) (*Next.js 16 and newer*) and [`middleware.ts`](https://github.com/veliovgroup/seo-middleware-nextjs/blob/master/examples/middleware.ts) (*Next.js 13, 14, and 15*) files.
 
-### Basic usage
+Next.js 16 renamed the `middleware.ts` file convention to `proxy.ts`, and the exported function from `middleware` to `proxy`. `middleware.ts` still works in Next.js 16, but it is deprecated. The package works with both, pick the file that matches the Next.js version of your project:
 
-Start with creating `middleware.ts` in `/src/` or root directory of Next.js project, then import `seo-middleware-nextjs` package:
+| Next.js | File | Export | Runtime |
+| --- | --- | --- | --- |
+| 16 and newer | `proxy.ts` | `proxy` | Node.js |
+| 13, 14, 15 | `middleware.ts` | `middleware` | Edge (*Node.js is opt-in since 15.5*) |
 
-```js
+The package uses only Web APIs (`fetch`, `Headers`, `URL`, `AbortController`, `btoa`), so the same code runs in the Edge and Node.js runtimes.
+
+### Next.js 16 and newer: `proxy.ts`
+
+Create `proxy.ts` in `/src/` or root directory of Next.js project, then import `seo-middleware-nextjs` package and export the `proxy` function:
+
+```ts
+// inside proxy.ts file:
 import { SEOMiddleware } from 'seo-middleware-nextjs';
+
+const seoMiddleware = new SEOMiddleware({
+  auth: 'Basic dGVzdDp0ZXN0'
+});
+
+// EXPORT PROXY FUNCTION
+export const proxy = seoMiddleware.createMiddleware();
+
+// EXPORT config.matcher
+// @see https://nextjs.org/docs/app/api-reference/file-conventions/proxy#matcher
+export const config = {
+  matcher: '/((?!api|_next/static|_next/image|_next/webpack-hmr|\\.well-known|favicon.ico).*)'
+};
 ```
 
-Register middleware handle:
+### Next.js 13, 14, and 15: `middleware.ts`
 
-```js
+Create `middleware.ts` in `/src/` or root directory of Next.js project, then import `seo-middleware-nextjs` package and export the `middleware` function:
+
+```ts
 // inside middleware.ts file:
 import { SEOMiddleware } from 'seo-middleware-nextjs';
 
@@ -94,22 +121,24 @@ const seoMiddleware = new SEOMiddleware({
 export const middleware = seoMiddleware.createMiddleware();
 
 // EXPORT config.matcher
-// @see https://nextjs.org/docs/app/api-reference/file-conventions/middleware#matcher
+// @see https://nextjs.org/docs/15/app/api-reference/file-conventions/middleware#matcher
 export const config = {
   matcher: '/((?!api|_next/static|_next/image|_next/webpack-hmr|\\.well-known|favicon.ico).*)'
 };
 ```
 
 > [!IMPORTANT]
-> `config.matcher` cannot be set to variable or changed/assigned during runtime; It can hold array of paths or RegExp-alike string, see [official Next.js middleware matcher docs](https://nextjs.org/docs/app/api-reference/file-conventions/middleware#matcher) for more details
+> `config.matcher` cannot be set to variable or changed/assigned during runtime; It can hold array of paths or RegExp-alike string, see [official Next.js matcher docs](https://nextjs.org/docs/app/api-reference/file-conventions/proxy#matcher) for more details
 
+> [!TIP]
+> Upgrading to Next.js 16? Rename `middleware.ts` to `proxy.ts` and `export const middleware` to `export const proxy`. Nothing else changes in the `SEOMiddleware` setup
 
 > [!TIP]
 > The API credentials and instructions can be found in "Integration Guide" of [Pre-rendering Panel](https://ostr.io/service/prerender), — click on the name of a website, then on <kbd>Integration Guide</kbd>
 
 ## API
 
-Create new `SEOMiddleware` instance in `/src/middleware.ts` file.
+Create new `SEOMiddleware` instance in `proxy.ts` (*Next.js 16+*) or `middleware.ts` (*Next.js 13-15*) file.
 
 ### *Constructor*
 
@@ -131,7 +160,7 @@ new SEOMiddleware(opts: SEOMiddlewareOptions);
 - `opts.debug` {*boolean*} — Enable debug logs. Default: `false`
 
 ```ts
-// inside middleware.ts file:
+// inside proxy.ts (Next.js 16+) or middleware.ts (Next.js 13-15) file:
 import { SEOMiddleware } from 'seo-middleware-nextjs';
 
 // INITIATE SEOMiddleware CLASS
@@ -145,14 +174,16 @@ const seoMiddleware = new SEOMiddleware({
   retries: 4,
 });
 
-// EXPORT MIDDLEWARE FUNCTION
-export const middleware = seoMiddleware.createMiddleware();
+// EXPORT PROXY FUNCTION (Next.js 16+)
+export const proxy = seoMiddleware.createMiddleware();
+// OR EXPORT MIDDLEWARE FUNCTION (Next.js 13-15)
+// export const middleware = seoMiddleware.createMiddleware();
 
 // EXPORT config.matcher
 // THIS ONE EXCLUDES ALL STATIC AND API ENDPOINTS
 // ADD ANY OTHER URLs THAT SHOULD BE EXCLUDED FROM PRE-RENDERING
 // OR USE IS AS "ONLY" PATHs MATCHING, EX.: '/(articles/?.*|products/?.*|only-this-path)' {string}
-// @see https://nextjs.org/docs/app/api-reference/file-conventions/middleware#matcher
+// @see https://nextjs.org/docs/app/api-reference/file-conventions/proxy#matcher
 export const config = {
   matcher: '/((?!api|_next/static|_next/image|_next/webpack-hmr|\\.well-known).*)'
 };
@@ -260,6 +291,7 @@ For more details on `IS_PRERENDERING_TYPE` variable [see this documentation](htt
 
 1. To enable debug messages set `opts.debug = true` or `DEBUG=true` environment variable.
 2. Remove `export config.matcher` to exclude its misconfiguration
+3. On Next.js 16 and newer make sure the file is named `proxy.ts` and exports `proxy`; on Next.js 13-15 it must be `middleware.ts` exporting `middleware`
 
 Additionally:
 
@@ -275,7 +307,8 @@ const seoMiddleware = new SEOMiddleware({
   debug: true,
 });
 
-export const middleware = seoMiddleware.createMiddleware();
+// `proxy` on Next.js 16+, `middleware` on Next.js 13-15
+export const proxy = seoMiddleware.createMiddleware();
 ```
 
 ----
