@@ -256,7 +256,9 @@ export class SEOMiddleware {
       this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [sendRequest]', url.toString(), `SENDING (attempt ${attempt}/${maxAttempts})`);
 
       try {
-        return await fetch(url, { headers, signal });
+        // `redirect: 'manual'` hands the renderer's 3xx with its `Location` to the bot,
+        // following it would serve the target page under the requested URL
+        return await fetch(url, { headers, signal, redirect: 'manual' });
       } catch (requestError) {
         lastError = requestError;
         this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [sendRequest]', url.toString(), 'CAUGHT AN ERROR', requestError);
