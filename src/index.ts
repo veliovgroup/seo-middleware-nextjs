@@ -76,6 +76,44 @@ const toAuthHeader = (auth: string): string => {
   throw new Error('[seo-middleware-nextjs] {auth} option is misconfigured! Use the "Basic xxx" value from ostr.io or a "user:pass" pair');
 };
 
+interface RenderedResponse {
+  response: Response;
+  body: ArrayBuffer | null;
+}
+
+const nullBodyStatuses = new Set([101, 103, 204, 205, 304]);
+
+// The service's own text/plain errors end with a bracketed four-digit reason code.
+// Same fallback rules as the ostr.io Cloudflare Worker examples
+const gatewayErrorRe = /^(Bad request!|Unauthorized!|Not permitted for this domain\. Wrong domain\.|Internal server error!|Origin is unreachable!|Origin timed out!)[\s\S]*\[\d{4}\]$/;
+const GATEWAY_ERROR_MAX_BYTES = 512;
+
+// Returns why the response is the renderer's own failure, or `false` for a rendered page.
+// A rendered page keeps the status the page declared (404, 410, 500, ...), the bot must see it.
+// Only the service's own errors fall back to the app
+const getRendererFailure = (response: Response, body: ArrayBuffer | null): string | false => {
+  if (response.status >= 200 && response.status < 400) {
+    return false;
+  }
+
+  if (response.headers.get('x-prerender-reason')) {
+    return 'RENDERER ERROR';
+  }
+
+  // Anything in front of the rendering gateway (its edge proxy during an outage) answers
+  // without `X-Prerender-*` headers. A rendered page always has `X-Prerender-Id`
+  if (response.status >= 500 && !response.headers.get('x-prerender-id') && !response.headers.get('x-prerender-cache')) {
+    return 'RENDERER INFRASTRUCTURE ERROR';
+  }
+
+  const contentType = (response.headers.get('content-type') || DICT.empty).toLowerCase();
+  if (body && body.byteLength <= GATEWAY_ERROR_MAX_BYTES && contentType.startsWith('text/plain') && gatewayErrorRe.test(new TextDecoder().decode(body).trim())) {
+    return 'RENDERER ERROR';
+  }
+
+  return false;
+};
+
 export type SEOMiddlewareLogger = Pick<Console, 'debug' | 'info' | 'warn' | 'error' | 'log'>;
 
 export interface SEOMiddlewareOptions {
@@ -227,24 +265,35 @@ export class SEOMiddleware {
         }
 
         const method = req.method === DICT.head ? DICT.head : DICT.get;
-        const res = await self.sendRequest(renderUrl, headers, method);
-        if (res) {
-          const outHeaders = new Headers(res.headers);
-          for (const k of outHeaders.keys()) {
-            const l = k.toLowerCase();
-            if (DICT.ignoreRespHeaders.has(l) || l.startsWith(DICT.middlewareHeaderStartsWith)) {
-              outHeaders.delete(k);
-            }
-          }
-
-          // HEAD responses carry headers only
-          return new NextResponse(method === DICT.head ? null : res.body, {
-            status: res.status,
-            headers: outHeaders,
-          });
+        const rendered = await self.sendRequest(renderUrl, headers, method);
+        if (!rendered) {
+          return NextResponse.next();
         }
 
-        return NextResponse.next();
+        const { response, body } = rendered;
+        if (response.status === 401 || response.status === 403) {
+          self.logger.warn('[seo-middleware-nextjs] [WARN] [middleware]', `RENDERER ANSWERED ${response.status}, CHECK THE {auth} OPTION`);
+        }
+
+        const failure = getRendererFailure(response, body);
+        if (failure) {
+          self.logger.warn('[seo-middleware-nextjs] [WARN] [middleware]', url.toString(), `${failure} (${response.status}); FALLBACK TO NextResponse.next()`);
+          return NextResponse.next();
+        }
+
+        const outHeaders = new Headers();
+        response.headers.forEach((value, key) => {
+          const name = key.toLowerCase();
+          if (!DICT.ignoreRespHeaders.has(name) && !name.startsWith(DICT.middlewareHeaderStartsWith)) {
+            outHeaders.append(name, value);
+          }
+        });
+
+        // HEAD and null-body statuses (204, 304, ...) carry headers only
+        return new NextResponse(method === DICT.head || nullBodyStatuses.has(response.status) ? null : body, {
+          status: response.status,
+          headers: outHeaders,
+        });
       } catch (middlewareError) {
         self.logger.warn('[seo-middleware-nextjs] [WARN] [middleware]', 'CAUGHT UNEXPECTED ERROR; FALLBACK TO NextResponse.next()', middlewareError);
         return NextResponse.next();
@@ -299,7 +348,7 @@ export class SEOMiddleware {
     return true;
   }
 
-  private async sendRequest(url: URL, headers: Headers, method: string): Promise<Response|null> {
+  private async sendRequest(url: URL, headers: Headers, method: string): Promise<RenderedResponse | null> {
     // `retries` is the total number of attempts, `1` sends a single request
     const maxAttempts = Math.max(1, this.retries);
     // One deadline for all attempts, so retries never stretch past `timeout`.
@@ -311,10 +360,11 @@ export class SEOMiddleware {
       for (let attempt = 1; ; attempt++) {
         this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [sendRequest]', url.toString(), `SENDING (attempt ${attempt}/${maxAttempts})`);
 
+        let response: Response;
         try {
           // `redirect: 'manual'` hands the renderer's 3xx with its `Location` to the bot,
           // following it would serve the target page under the requested URL
-          return await fetch(url, { method, headers, signal: controller.signal, redirect: 'manual' });
+          response = await fetch(url, { method, headers, signal: controller.signal, redirect: 'manual' });
         } catch (requestError) {
           if (controller.signal.aborted) {
             // A timed out renderer is busy or down, another attempt would only add delay
@@ -329,6 +379,17 @@ export class SEOMiddleware {
 
           // Connection errors before a response arrived, like a reset keep-alive socket, are worth another attempt
           this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [sendRequest]', url.toString(), 'CAUGHT AN ERROR, RETRYING', requestError);
+          continue;
+        }
+
+        // Read the whole body under the same deadline. A body cut by a timeout or a
+        // dropped connection falls back to the app instead of reaching the bot truncated
+        try {
+          const body = method === DICT.head ? null : await response.arrayBuffer();
+          return { response, body };
+        } catch (bodyError) {
+          this.logger.warn('[seo-middleware-nextjs] [WARN] [sendRequest]', url.toString(), controller.signal.aborted ? `RESPONSE BODY NOT RECEIVED WITHIN ${this.timeout}ms` : 'FAILED TO READ RESPONSE BODY', bodyError);
+          return null;
         }
       }
     } finally {
