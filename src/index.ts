@@ -220,9 +220,12 @@ export class SEOMiddleware {
       return false;
     }
 
-    if (this.ignoredPaths instanceof RegExp && this.ignoredPaths.test(path)) {
-      this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [shouldPrerender]', url.toString(), 'IGNORED: BY PATH');
-      return false;
+    if (this.ignoredPaths instanceof RegExp) {
+      this.ignoredPaths.lastIndex = 0;
+      if (this.ignoredPaths.test(path)) {
+        this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [shouldPrerender]', url.toString(), 'IGNORED: BY PATH');
+        return false;
+      }
     }
 
     this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [shouldPrerender]', url.toString(), 'WILL PRERENDER');
