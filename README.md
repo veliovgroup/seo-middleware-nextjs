@@ -44,6 +44,8 @@ SEO middleware intelligently reroutes bot traffic to `ostr.io` rendering endpoin
 - [__API__](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#api)
   - [Constructor `new SEOMiddleware()`](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#constructor)
   - [TS Types](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#types)
+  - [Configuration via env.vars](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#configuration-via-envvars)
+- [Failure handling](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#failure-handling)
 - [Speed-up rendering](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#speed-up-rendering)
 - [Detect request from Pre-rendering engine during runtime](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#detect-request-from-pre-rendering-engine-during-runtime)
 - [Detect type of Pre-rendering engine](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#detect-type-of-the-pre-rendering-engine)
@@ -143,35 +145,44 @@ Create new `SEOMiddleware` instance in `proxy.ts` (*Next.js 16+*) or `middleware
 ### *Constructor*
 
 ```ts
-new SEOMiddleware(opts: SEOMiddlewareOptions);
+new SEOMiddleware(opts?: SEOMiddlewareOptions);
 ```
 
-- `opts` {*SEOMiddlewareOptions*} - Configuration options
-- `opts.auth` {*string*} - Auth string in the next format: `Basic xxx...xxx`. Can be set via an environment variables: `SPIDERABLE_SERVICE_AUTH` or `PRERENDER_SERVICE_AUTH` or `OSTR_AUTH`
-- `opts.rootURL` {*false|string*} - FQDN URL to the root of your website. Default: `false` (*auto-detected from `NextRequest` object*)
-- `opts.renderingEndpoint` {*string*} - Valid URL to Pre-rendering engine. Default: `https://render.ostr.io`
-- `opts.keepGetQuery` {*boolean*} — Toggle support for get-query. Default `true`; It's safe to set to `false` if your app doesn't use get-query for its functionality
-- `opts.supportEscapedFragment` {*boolean*} — Toggle support for `?_escaped_fragment_=` get query. Default `true` (*recommended to keep it `true`*)
-- `opts.retries` {*number*} — Maximum request attempts to pre-rendering engine in case of failure. Default: `2`
-- `opts.ignoredPaths` {*RegExp|false*} - Regular Expression with paths that should get ignored by SEO Middleware. Default `false`
-- `opts.botAgents` {*string[]*} - An array of strings (case insensitive) with additional User-Agent names of crawlers that needs to get intercepted. The default list includes all modern crawler's User-Agents, see `import {BOT_AGENTS}` for more details
-- `opts.ignoredExtensions` {*string[]*} — An array of strings with static files extensions that should get ignored by SEO Middleware. The default value holds all modern files extensions
-- `opts.logger` {*Console|Winston|Pino*} — Logger facility for info messages, warnings, and errors. Default: `console`
-- `opts.debug` {*boolean*} — Enable debug logs. Default: `false`
+`opts` {*SEOMiddlewareOptions*} is optional when the auth token is set via [environment variables](https://github.com/veliovgroup/seo-middleware-nextjs?tab=readme-ov-file#configuration-via-envvars). All options:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `auth` | `string` | env variables | Auth for the rendering endpoint. Accepts the ready `Basic xxx...xxx` value from the [Pre-rendering Panel](https://ostr.io/service/prerender), sent as is, or a `user:pass` pair, base64-encoded by the package. Falls back to `PRERENDER_SERVICE_AUTH`, `SPIDERABLE_SERVICE_AUTH`, or `OSTR_AUTH` env variables, in this order. Required |
+| `rootURL` | `false` \| `string` | `false` | FQDN URL to the root of your website. `false` auto-detects it from the `NextRequest` object |
+| `renderingEndpoint` | `string` | `https://render.ostr.io` | Valid URL to Pre-rendering engine |
+| `timeout` | `number` | `20000` | Time budget in milliseconds for the whole request to the rendering endpoint: all attempts plus reading the response body. When it runs out, the request is passed to the app |
+| `retries` | `number` | `2` | Total number of attempts, `1` sends a single request. Only connection errors that happen before the rendering endpoint answered are retried, timeouts are not |
+| `keepGetQuery` | `boolean` | `true` | Toggle support for get-query. It's safe to set to `false` if your app doesn't use get-query for its functionality |
+| `supportEscapedFragment` | `boolean` | `true` | Toggle support for `?_escaped_fragment_=` get query (*recommended to keep it `true`*) |
+| `ignoredPaths` | `RegExp` \| `false` | `false` | Regular Expression with paths that should get ignored by SEO Middleware. Tested against the lowercased path |
+| `botAgents` | `string[]` | `BOT_AGENTS` | Case-insensitive User-Agent substrings of crawlers that need to get intercepted. Replaces the default list, to extend it pass `[...BOT_AGENTS, 'my-crawler']` |
+| `ignoredExtensions` | `string[]` | `IGNORE_EXTENSIONS` | Lowercase static file extensions that should get ignored by SEO Middleware. Replaces the default list, to extend it pass `[...IGNORE_EXTENSIONS, 'ext']` |
+| `logger` | `Console` \| `Winston` \| `Pino` | `console` | Logger facility for info messages, warnings, and errors |
+| `debug` | `boolean` | `false` | Enable debug logs, also enabled by `DEBUG=true` env variable. Debug logs never include the auth token |
+
+> [!NOTE]
+> The default `timeout` of 20 seconds fits serverless limits: Vercel Edge Middleware must start a response within 25 seconds, so the package has time to pass the request to the app when rendering is slow. On a Node.js server without such limits a larger value is fine, for example `timeout: 60000`. Keep `timeout` below the execution limit of your hosting platform
 
 ```ts
 // inside proxy.ts (Next.js 16+) or middleware.ts (Next.js 13-15) file:
-import { SEOMiddleware } from 'seo-middleware-nextjs';
+import { SEOMiddleware, BOT_AGENTS } from 'seo-middleware-nextjs';
 
 // INITIATE SEOMiddleware CLASS
 const seoMiddleware = new SEOMiddleware({
-  auth: 'Basic dGVzdDp0ZXN0',
+  auth: 'Basic dGVzdDp0ZXN0', // OR 'user:pass'
   rootURL: 'https://example.com',
   renderingEndpoint: 'https://render.ostr.io',
   ignoredPaths: /\/images\/|\/uploads\//,
+  botAgents: [...BOT_AGENTS, 'my-crawler'],
   supportEscapedFragment: true,
   keepGetQuery: true,
-  retries: 4,
+  timeout: 20000,
+  retries: 3,
 });
 
 // EXPORT PROXY FUNCTION (Next.js 16+)
@@ -212,12 +223,13 @@ export interface SEOMiddlewareOptions {
   botAgents?: string[];
   renderingEndpoint?: string;
   retries?: number;
+  timeout?: number;
   debug?: boolean;
 }
 
 export declare class SEOMiddleware {
   auth: string;
-  rootURL?: false | string;
+  rootURL: false | string;
   supportEscapedFragment: boolean;
   keepGetQuery: boolean;
   ignoredPaths: false | RegExp;
@@ -227,21 +239,43 @@ export declare class SEOMiddleware {
   renderingEndpoint: string;
   renderingBase: string;
   retries: number;
+  timeout: number;
   debug: boolean;
-  constructor(opts: SEOMiddlewareOptions);
+  constructor(opts?: SEOMiddlewareOptions);
   createMiddleware(): (req: NextRequest) => Promise<Response>;
 }
 ```
 
 ### Configuration via env.vars
 
-Authentication token can be set via various environment variables:
+Authentication token can be set via various environment variables. The package reads the first one set, in this order: `PRERENDER_SERVICE_AUTH`, `SPIDERABLE_SERVICE_AUTH`, `OSTR_AUTH`. Each accepts the `Basic xxx` value or a `user:pass` pair:
 
 ```sh
 OSTR_AUTH='Basic xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 PRERENDER_SERVICE_AUTH='Basic xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
-SPIDERABLE_SERVICE_AUTH='Basic xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+SPIDERABLE_SERVICE_AUTH='user:pass'
 ```
+
+With the token in an env variable, `auth` option can be omitted:
+
+```ts
+const seoMiddleware = new SEOMiddleware();
+```
+
+## Failure handling
+
+A crawler always gets a page: when the rendering endpoint fails, the request is passed to the app with `NextResponse.next()`, as if the middleware was not there.
+
+- Rendered page with 2xx status: returned to the crawler as is
+- Redirect (301, 302, 307, 308): returned to the crawler with its `Location` header, the middleware does not follow it
+- Status declared by the page itself (404, 410, 500, and others, see [genuine status code](https://github.com/ostr-io/ostrio-docs/blob/master/docs/prerendering/genuine-status-code.md)): returned to the crawler as is
+- Connection error before the rendering endpoint answered: retried until `retries` attempts are used, then passed to the app
+- No complete response within `timeout`, including a response body that stalls: passed to the app, never retried. A partially received page never reaches the crawler
+- Error of the rendering service itself (a response with `X-Prerender-Reason` header, or its plain-text error like `Bad request! ... [4000]`): passed to the app
+- 5xx without `X-Prerender-Id` and `X-Prerender-Cache` headers, an error from the infrastructure in front of the rendering service: passed to the app
+- 401 and 403 log a warning about the `auth` option
+
+`HEAD` requests are sent to the rendering endpoint as `HEAD` and answered with headers only. Hop-by-hop, CDN, cookie, and `x-middleware-*` headers of the rendered response are not passed to the crawler.
 
 ## Speed-up rendering
 
