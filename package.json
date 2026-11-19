@@ -79,9 +79,10 @@
   "author": "dr.dimitru (https://veliovgroup.com)",
   "license": "BSD-3-Clause",
   "devDependencies": {
-    "next": "^15.5.6",
-    "rimraf": "^6.0.1",
-    "typescript": "^5.9.3"
+    "@types/node": "^24.19.2",
+    "next": "^16.4.6",
+    "rimraf": "^6.1.4",
+    "typescript": "^7.0.2"
   },
   "peerDependencies": {
     "next": ">=13"

@@ -4,6 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "outDir": "dist",
+    "rootDir": "src",
     "declaration": true,
     "sourceMap": false,
     "removeComments": true,
