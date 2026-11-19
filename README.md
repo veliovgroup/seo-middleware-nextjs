@@ -24,16 +24,16 @@ SEO middleware intelligently reroutes bot traffic to `ostr.io` rendering endpoin
 
 ## Related packages and docs
 
-- __[Detailed Pre-rendering Engine Documentation](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/README.md)__
+- __[Detailed Pre-rendering Engine Documentation](https://github.com/ostr-io/ostrio-docs/blob/master/docs/prerendering/README.md)__
 - __Cloud Integrations__
-  - [CloudFlare Worker Integration](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/cloudflare-worker.md)
-  - [Netlify Integration](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/netlify-prerendering.md)
+  - [CloudFlare Worker Integration](https://github.com/ostr-io/ostrio-docs/blob/master/docs/prerendering/cloudflare-worker.md)
+  - [Netlify Integration](https://github.com/ostr-io/ostrio-docs/blob/master/docs/prerendering/netlify-prerendering.md)
 - __Web Server Integrations__
-  - [Nginx Integration](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/nginx.md)
-  - [Apache Integration](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/apache.md)
+  - [Nginx Integration](https://github.com/ostr-io/ostrio-docs/blob/master/docs/prerendering/nginx.md)
+  - [Apache Integration](https://github.com/ostr-io/ostrio-docs/blob/master/docs/prerendering/apache.md)
 - __Related Packages__
   - [Node.js Integration via NPM package](https://github.com/veliovgroup/spiderable-middleware/blob/master/README.md)
-  - [Meteor.js Integration via Atmosphere Package](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/meteor-atmosphere.md)
+  - [Meteor.js Integration via Atmosphere Package](https://github.com/ostr-io/ostrio-docs/blob/master/docs/prerendering/meteor-atmosphere.md)
 
 ## ToC
 
@@ -159,7 +159,7 @@ export const config = {
 ```
 
 > [!TIP]
-> We provide various options for `renderingEndpoint` as "[Rendering Endpoints](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/rendering-endpoints.md)", each endpoint has its own features to fit different project needs
+> We provide various options for `renderingEndpoint` as "[Rendering Endpoints](https://github.com/ostr-io/ostrio-docs/blob/master/docs/prerendering/rendering-endpoints.md)", each endpoint has its own features to fit different project needs
 
 ### Types
 
@@ -226,7 +226,7 @@ afterPageAndAssetsAreLoaded(() => {
 });
 ```
 
-For more details on `IS_RENDERED` variable and other available optimizations [see this documentation](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/optimization.md#speed-up-rendering)
+For more details on `IS_RENDERED` variable and other available optimizations [see this documentation](https://github.com/ostr-io/ostrio-docs/blob/master/docs/prerendering/optimization.md#speed-up-rendering)
 
 ## Detect request from Pre-rendering engine during runtime
 
@@ -238,7 +238,7 @@ if (window.IS_PRERENDERING) {
 }
 ```
 
-For more details on `IS_PRERENDERING` variable [see this documentation](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/detect-prerendering.md)
+For more details on `IS_PRERENDERING` variable [see this documentation](https://github.com/ostr-io/ostrio-docs/blob/master/docs/prerendering/detect-prerendering.md)
 
 ## Detect type of the Pre-rendering engine
 
@@ -254,7 +254,7 @@ if (window.IS_PRERENDERING_TYPE === 'mobile') {
 }
 ```
 
-For more details on `IS_PRERENDERING_TYPE` variable [see this documentation](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/detect-prerendering.md#detect-type-of-the-pre-rendering-engine)
+For more details on `IS_PRERENDERING_TYPE` variable [see this documentation](https://github.com/ostr-io/ostrio-docs/blob/master/docs/prerendering/detect-prerendering.md#detect-type-of-the-pre-rendering-engine)
 
 ## Debugging
 
@@ -264,7 +264,7 @@ For more details on `IS_PRERENDERING_TYPE` variable [see this documentation](htt
 Additionally:
 
 - Set `auth` to `Basic dGVzdDp0ZXN0` (*credentials for testing*)
-- Set `renderingEndpoint` to `https://render-bypass.ostr.io` avoiding cached results, [read more about rendering endpoints](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/rendering-endpoints.md)
+- Set `renderingEndpoint` to `https://render-bypass.ostr.io` avoiding cached results, [read more about rendering endpoints](https://github.com/ostr-io/ostrio-docs/blob/master/docs/prerendering/rendering-endpoints.md)
 
 ```ts
 import { SEOMiddleware } from 'seo-middleware-nextjs';
@@ -280,4 +280,4 @@ export const middleware = seoMiddleware.createMiddleware();
 
 ----
 
-__Read [Full Pre-rendering Engine Documentation](https://github.com/veliovgroup/ostrio/blob/master/docs/prerendering/README.md)__
+__Read [Full Pre-rendering Engine Documentation](https://github.com/ostr-io/ostrio-docs/blob/master/docs/prerendering/README.md)__
