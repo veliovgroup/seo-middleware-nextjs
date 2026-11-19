@@ -148,7 +148,7 @@ export class SEOMiddleware {
   timeout: number;
   debug: boolean;
 
-  constructor(opts: SEOMiddlewareOptions) {
+  constructor(opts: SEOMiddlewareOptions = {}) {
     this.logger = opts.logger ?? console;
     const auth = (opts.auth || readEnvAuth()).trim();
     if (!auth) {
