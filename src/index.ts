@@ -30,7 +30,6 @@ const DICT = {
   pipe: '|',
   dot: '.',
   empty: '',
-  colon: ':',
   get: 'GET',
   head: 'HEAD',
   allowedMethods: new Set(['GET', 'HEAD']),
@@ -38,7 +37,7 @@ const DICT = {
   service: {
     origin: 'ostr.io',
     originTld: '.ostr.io',
-    authStartsWith: 'Basic ',
+    authBasic: 'Basic ',
   },
   headers: {
     ua: 'user-agent',
@@ -50,7 +49,32 @@ const DICT = {
 };
 
 const beginningSlashRe = /^\//;
+const basicAuthRe = /^Basic\s+\S/i;
 const trailingSlashRe = /\/$/;
+
+// `process` is not guaranteed outside Node.js, guard every read
+const hasProcessEnv = (): boolean => typeof process !== 'undefined' && !!process.env;
+
+// Literal `process.env.NAME` reads, so bundlers that inline env variables still find them
+const readEnvAuth = (): string => (hasProcessEnv() && (process.env.PRERENDER_SERVICE_AUTH || process.env.SPIDERABLE_SERVICE_AUTH || process.env.OSTR_AUTH)) || DICT.empty;
+
+// ostr.io hands out a ready "Basic xxx" header value, send it as is.
+// A "user:pass" pair gets base64-encoded with Web APIs only (no Buffer), so this runs on Edge too
+const toAuthHeader = (auth: string): string => {
+  if (basicAuthRe.test(auth)) {
+    return auth;
+  }
+
+  if (auth.includes(':')) {
+    let binary = DICT.empty;
+    for (const byte of new TextEncoder().encode(auth)) {
+      binary += String.fromCharCode(byte);
+    }
+    return `${DICT.service.authBasic}${btoa(binary)}`;
+  }
+
+  throw new Error('[seo-middleware-nextjs] {auth} option is misconfigured! Use the "Basic xxx" value from ostr.io or a "user:pass" pair');
+};
 
 export type SEOMiddlewareLogger = Pick<Console, 'debug' | 'info' | 'warn' | 'error' | 'log'>;
 
@@ -86,14 +110,11 @@ export class SEOMiddleware {
 
   constructor(opts: SEOMiddlewareOptions) {
     this.logger = opts.logger ?? console;
-    this.auth = opts.auth || process.env.PRERENDER_SERVICE_AUTH || process.env.SPIDERABLE_SERVICE_AUTH || process.env.OSTR_AUTH || '';
-    if (!this.auth) {
+    const auth = (opts.auth || readEnvAuth()).trim();
+    if (!auth) {
       throw new Error('[seo-middleware-nextjs] missing {auth} option! Pass via {auth} option or set one of these environment variables: PRERENDER_SERVICE_AUTH, SPIDERABLE_SERVICE_AUTH, OSTR_AUTH');
     }
-
-    if (!this.auth.startsWith(DICT.service.authStartsWith) || this.auth.includes(DICT.colon)) {
-      throw new Error('[seo-middleware-nextjs] {auth} option is misconfigured or wrong value is used!');
-    }
+    this.auth = toAuthHeader(auth);
 
     this.rootURL = opts.rootURL ?? false;
     if (this.rootURL && this.rootURL.endsWith(DICT.slash)) {
@@ -123,7 +144,7 @@ export class SEOMiddleware {
       this.logger.warn('[seo-middleware-nextjs] [WARN] [new SEOMiddleware()]', `{timeout} must be a positive number of milliseconds, falling back to ${DEFAULT_TIMEOUT}`);
       this.timeout = DEFAULT_TIMEOUT;
     }
-    this.debug = opts.debug || process.env.DEBUG === 'true' || false;
+    this.debug = opts.debug || (hasProcessEnv() && process.env.DEBUG === 'true') || false;
 
     // Never log `opts` as is, it holds the auth token
     this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [new SEOMiddleware()]', 'OK', {
