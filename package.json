@@ -18,7 +18,8 @@
     "clean": "rimraf dist",
     "prepublishOnly": "npm run clean && npm run build",
     "test": "npm run build && npm run test:types && node --test test/*.test.mjs",
-    "test:types": "tsc -p test/tsconfig.json --noEmit"
+    "test:types": "tsc -p test/tsconfig.json --noEmit",
+    "test:coverage": "npm run build && node --test --experimental-test-coverage --test-coverage-include=dist/index.js --test-coverage-lines=95 --test-coverage-branches=90 --test-coverage-functions=95 test/*.test.mjs"
   },
   "repository": {
     "type": "git",
