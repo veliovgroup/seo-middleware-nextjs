@@ -118,11 +118,13 @@ export class SEOMiddleware {
         const url = req.nextUrl.clone();
         self.debug && self.logger.info('[seo-middleware-nextjs] [DEBUG] [middleware]', 'received request', url.toString());
 
-        const escapedFragment = url.searchParams.get(DICT.escapedFragment);
-
-        if (typeof escapedFragment !== 'string' && !self.shouldPrerender(req, url)) {
+        // Every request goes through method, host, static, and path checks,
+        // including requests that carry `_escaped_fragment_`
+        if (!self.shouldPrerender(req, url)) {
           return NextResponse.next();
         }
+
+        const escapedFragment = url.searchParams.get(DICT.escapedFragment);
 
         const ua = (req.headers.get(DICT.headers.ua) || DICT.empty).toLowerCase();
         let fetchUrl = `${self.rootURL || url.origin}`;
