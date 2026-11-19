@@ -27,6 +27,8 @@ const DICT = {
   dot: '.',
   empty: '',
   colon: ':',
+  get: 'GET',
+  head: 'HEAD',
   allowedMethods: new Set(['GET', 'HEAD']),
   args: { bot: '&bot=' },
   service: {
@@ -176,7 +178,8 @@ export class SEOMiddleware {
           return NextResponse.next();
         }
 
-        const res = await self.sendRequest(renderUrl, headers);
+        const method = req.method === DICT.head ? DICT.head : DICT.get;
+        const res = await self.sendRequest(renderUrl, headers, method);
         if (res) {
           const outHeaders = new Headers(res.headers);
           for (const k of outHeaders.keys()) {
@@ -186,7 +189,8 @@ export class SEOMiddleware {
             }
           }
 
-          return new NextResponse(res.body, {
+          // HEAD responses carry headers only
+          return new NextResponse(method === DICT.head ? null : res.body, {
             status: res.status,
             headers: outHeaders,
           });
@@ -247,7 +251,7 @@ export class SEOMiddleware {
     return true;
   }
 
-  private async sendRequest(url: URL, headers: Headers): Promise<Response|null> {
+  private async sendRequest(url: URL, headers: Headers, method: string): Promise<Response|null> {
     const maxAttempts = Math.max(1, this.retries);
     let lastError: unknown;
 
@@ -258,7 +262,7 @@ export class SEOMiddleware {
       try {
         // `redirect: 'manual'` hands the renderer's 3xx with its `Location` to the bot,
         // following it would serve the target page under the requested URL
-        return await fetch(url, { headers, signal, redirect: 'manual' });
+        return await fetch(url, { method, headers, signal, redirect: 'manual' });
       } catch (requestError) {
         lastError = requestError;
         this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [sendRequest]', url.toString(), 'CAUGHT AN ERROR', requestError);
