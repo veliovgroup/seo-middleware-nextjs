@@ -80,7 +80,7 @@ export class SEOMiddleware {
     this.logger = opts.logger ?? console;
     this.auth = opts.auth || process.env.PRERENDER_SERVICE_AUTH || process.env.SPIDERABLE_SERVICE_AUTH || process.env.OSTR_AUTH || '';
     if (!this.auth) {
-      throw new Error('[seo-middleware-nextjs] missing {auth} option! Passed via {auth} option or set via PRERENDER_SERVICE_URL or OSTR_AUTH environment variable');
+      throw new Error('[seo-middleware-nextjs] missing {auth} option! Pass via {auth} option or set one of these environment variables: PRERENDER_SERVICE_AUTH, SPIDERABLE_SERVICE_AUTH, OSTR_AUTH');
     }
 
     if (!this.auth.startsWith(DICT.service.authStartsWith) || this.auth.includes(DICT.colon)) {
@@ -114,54 +114,67 @@ export class SEOMiddleware {
     this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [createMiddleware]', 'OK');
 
     return async function middleware(req: NextRequest) {
-      const url = req.nextUrl.clone();
-      self.debug && self.logger.info('[seo-middleware-nextjs] [DEBUG] [middleware]', 'received request', url.toString());
-
-      const escapedFragment = url.searchParams.get(DICT.escapedFragment);
-
-      if (typeof escapedFragment !== 'string' && !self.shouldPrerender(req, url)) {
-        return NextResponse.next();
-      }
-
-      const ua = (req.headers.get(DICT.headers.ua) || DICT.empty).toLowerCase();
-      let fetchUrl = `${self.rootURL || url.origin}`;
-      if (self.supportEscapedFragment && typeof escapedFragment === 'string') {
-        url.searchParams.delete(DICT.escapedFragment);
-
-        if (escapedFragment.length) {
-          fetchUrl += `${url.pathname.replace(trailingSlashRe, DICT.empty)}${DICT.slash}${escapedFragment.replace(beginningSlashRe, DICT.empty)}`;
-        } else {
-          fetchUrl += url.pathname.replace(trailingSlashRe, DICT.empty);
-        }
-
-        if (!self.shouldPrerender(req, new URL(fetchUrl))) {
-          return NextResponse.next();
-        }
-      } else {
-        if (!self.checkBot(ua)) {
-          return NextResponse.next();
-        }
-        fetchUrl += url.pathname;
-      }
-
-      if (self.keepGetQuery && url.search && url.search.length > 1) {
-        fetchUrl += url.search;
-      }
-
-      const headers = new Headers();
-      headers.set(DICT.headers.auth, self.auth);
-
-      for (const h of DICT.keepReqHeaders) {
-        if (req.headers.has(h)) {
-          headers.set(h, req.headers.get(h) as string);
-        }
-      }
-
-      const renderUrl = new URL(`${self.renderingBase}${encodeURIComponent(fetchUrl)}${DICT.args.bot}${encodeURIComponent(ua)}`);
-
       try {
-        const res = await self.sendRequest(renderUrl, headers, 1);
+        const url = req.nextUrl.clone();
+        self.debug && self.logger.info('[seo-middleware-nextjs] [DEBUG] [middleware]', 'received request', url.toString());
 
+        const escapedFragment = url.searchParams.get(DICT.escapedFragment);
+
+        if (typeof escapedFragment !== 'string' && !self.shouldPrerender(req, url)) {
+          return NextResponse.next();
+        }
+
+        const ua = (req.headers.get(DICT.headers.ua) || DICT.empty).toLowerCase();
+        let fetchUrl = `${self.rootURL || url.origin}`;
+        if (self.supportEscapedFragment && typeof escapedFragment === 'string') {
+          url.searchParams.delete(DICT.escapedFragment);
+
+          if (escapedFragment.length) {
+            fetchUrl += `${url.pathname.replace(trailingSlashRe, DICT.empty)}${DICT.slash}${escapedFragment.replace(beginningSlashRe, DICT.empty)}`;
+          } else {
+            fetchUrl += url.pathname.replace(trailingSlashRe, DICT.empty);
+          }
+
+          let fetchUrlParsed: URL;
+          try {
+            fetchUrlParsed = new URL(fetchUrl);
+          } catch {
+            self.debug && self.logger.info('[seo-middleware-nextjs] [DEBUG] [middleware]', 'invalid reconstructed URL, passing through:', fetchUrl);
+            return NextResponse.next();
+          }
+          if (!self.shouldPrerender(req, fetchUrlParsed)) {
+            return NextResponse.next();
+          }
+        } else {
+          if (!self.checkBot(ua)) {
+            return NextResponse.next();
+          }
+          fetchUrl += url.pathname;
+        }
+
+        if (self.keepGetQuery && url.search && url.search.length > 1) {
+          fetchUrl += url.search;
+        }
+
+        const headers = new Headers();
+        headers.set(DICT.headers.auth, self.auth);
+
+        for (const h of DICT.keepReqHeaders) {
+          const v = req.headers.get(h);
+          if (v) {
+            headers.set(h, v);
+          }
+        }
+
+        let renderUrl: URL;
+        try {
+          renderUrl = new URL(`${self.renderingBase}${encodeURIComponent(fetchUrl)}${DICT.args.bot}${encodeURIComponent(ua)}`);
+        } catch (renderUrlError) {
+          self.logger.warn('[seo-middleware-nextjs] [WARN] [middleware]', url.toString(), 'FAILED TO BUILD renderUrl; FALLBACK TO NextResponse.next()', renderUrlError);
+          return NextResponse.next();
+        }
+
+        const res = await self.sendRequest(renderUrl, headers);
         if (res) {
           const outHeaders = new Headers(res.headers);
           for (const k of outHeaders.keys()) {
@@ -178,8 +191,8 @@ export class SEOMiddleware {
         }
 
         return NextResponse.next();
-      } catch (fetchError) {
-        self.logger.warn('[seo-middleware-nextjs] [WARN] [middleware]', url.toString(), 'CAUGHT ERROR; FALLBACK TO NextResponse.next()', fetchError);
+      } catch (middlewareError) {
+        self.logger.warn('[seo-middleware-nextjs] [WARN] [middleware]', 'CAUGHT UNEXPECTED ERROR; FALLBACK TO NextResponse.next()', middlewareError);
         return NextResponse.next();
       }
     };
@@ -232,28 +245,23 @@ export class SEOMiddleware {
     return true;
   }
 
-  private async sendRequest(url: URL, headers: Headers, attempt: number = 1): Promise<Response|null> {
-    const signal = AbortSignal.timeout(25000);
-    this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [sendRequest]', url.toString(), 'SENDING');
+  private async sendRequest(url: URL, headers: Headers): Promise<Response|null> {
+    const maxAttempts = Math.max(1, this.retries);
+    let lastError: unknown;
 
-    try {
-      const res = await fetch(url, {
-        headers,
-        signal,
-      });
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const signal = AbortSignal.timeout(25000);
+      this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [sendRequest]', url.toString(), `SENDING (attempt ${attempt}/${maxAttempts})`);
 
-      return res;
-    } catch (requestError) {
-      this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [sendRequest]', url.toString(), 'CAUGHT AN ERROR', requestError);
-      const nextAttempt = attempt + 1;
-      if (nextAttempt <= this.retries) {
-        this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [sendRequest]', url.toString(), 'RETRY REQUEST');
-        return await this.sendRequest(url, headers, nextAttempt);
+      try {
+        return await fetch(url, { headers, signal });
+      } catch (requestError) {
+        lastError = requestError;
+        this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [sendRequest]', url.toString(), 'CAUGHT AN ERROR', requestError);
       }
-      this.logger.warn('[seo-middleware-nextjs] [WARN] [sendRequest]', url.toString(), 'CAUGHT AN ERROR AFTER RETRY', requestError);
     }
 
+    this.logger.warn('[seo-middleware-nextjs] [WARN] [sendRequest]', url.toString(), 'CAUGHT AN ERROR AFTER RETRY', lastError);
     return null;
   }
 }
-
