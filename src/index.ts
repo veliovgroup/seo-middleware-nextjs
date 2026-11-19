@@ -52,7 +52,9 @@ const beginningSlashRe = /^\//;
 const basicAuthRe = /^Basic\s+\S/i;
 const trailingSlashRe = /\/$/;
 
-// `process` is not guaranteed outside Node.js, guard every read
+// `process` is not guaranteed outside Node.js, guard every read. Declared here, so the build
+// does not depend on Node.js types
+declare const process: { env: Record<string, string | undefined> };
 const hasProcessEnv = (): boolean => typeof process !== 'undefined' && !!process.env;
 
 // Literal `process.env.NAME` reads, so bundlers that inline env variables still find them
