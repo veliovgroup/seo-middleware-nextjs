@@ -11,7 +11,7 @@ SEO middleware intelligently reroutes bot traffic to `ostr.io` rendering endpoin
 - 🕸 Executes JavaScript — get rendered HTML page and its content; Outperforms SSR and allows to reduce server load by disabling SSR;
 - 🏎️ Expands Crawl Budget — Improves timings for dynamic and static pages via advanced CDN and caching;
 - 🚀 Boosts Web Vitals and Lighthouse scores;
-- 🎛️ Improves TTFB, LCP, INP, CLS, and other Web Vitals and LightHouse metrics positively enhancing overall SEO score;
+- 🎛️ Improves TTFB, LCP, INP, CLS, and other Web Vitals and Lighthouse metrics positively enhancing overall SEO score;
 - 🖥 Supports PWAs and SPAs;
 - 📱 Supports mobile-like crawlers;
 - 💅 Supports [`styled-components`](https://styled-components.com);
@@ -101,7 +101,7 @@ export const config = {
 ```
 
 > [!IMPORTANT]
-> `config.matcher` can not be set to variable or changed/assigned during runtime; It can hold array of paths or RegExp-alike string, see [official Next.js middleware matcher docs](https://nextjs.org/docs/app/api-reference/file-conventions/middleware#matcher) for more details
+> `config.matcher` cannot be set to variable or changed/assigned during runtime; It can hold array of paths or RegExp-alike string, see [official Next.js middleware matcher docs](https://nextjs.org/docs/app/api-reference/file-conventions/middleware#matcher) for more details
 
 
 > [!TIP]
@@ -119,13 +119,13 @@ new SEOMiddleware(opts: SEOMiddlewareOptions);
 
 - `opts` {*SEOMiddlewareOptions*} - Configuration options
 - `opts.auth` {*string*} - Auth string in the next format: `Basic xxx...xxx`. Can be set via an environment variables: `SPIDERABLE_SERVICE_AUTH` or `PRERENDER_SERVICE_AUTH` or `OSTR_AUTH`
-- `opts.rootURL` {*string*} - FQDN URL to the root of your website. Default: `false` (*auto-detected from `NextRequest` object*)
+- `opts.rootURL` {*false|string*} - FQDN URL to the root of your website. Default: `false` (*auto-detected from `NextRequest` object*)
 - `opts.renderingEndpoint` {*string*} - Valid URL to Pre-rendering engine. Default: `https://render.ostr.io`
 - `opts.keepGetQuery` {*boolean*} — Toggle support for get-query. Default `true`; It's safe to set to `false` if your app doesn't use get-query for its functionality
 - `opts.supportEscapedFragment` {*boolean*} — Toggle support for `?_escaped_fragment_=` get query. Default `true` (*recommended to keep it `true`*)
-- `opts.retries` {*number*} — Amount of retries sending request to pre-rendering engine in case of the failure. Default: `2`
+- `opts.retries` {*number*} — Maximum request attempts to pre-rendering engine in case of failure. Default: `2`
 - `opts.ignoredPaths` {*RegExp|false*} - Regular Expression with paths that should get ignored by SEO Middleware. Default `false`
-- `opts.botAgents` {*string[]*} - An array of strings (case insensitive) with additional User-Agent names of crawlers that needs to get intercepted. The default list includes all modern crawler's User-Agents, see `import {BOT_AGENTS}` for more datils
+- `opts.botAgents` {*string[]*} - An array of strings (case insensitive) with additional User-Agent names of crawlers that needs to get intercepted. The default list includes all modern crawler's User-Agents, see `import {BOT_AGENTS}` for more details
 - `opts.ignoredExtensions` {*string[]*} — An array of strings with static files extensions that should get ignored by SEO Middleware. The default value holds all modern files extensions
 - `opts.logger` {*Console|Winston|Pino*} — Logger facility for info messages, warnings, and errors. Default: `console`
 - `opts.debug` {*boolean*} — Enable debug logs. Default: `false`
@@ -207,7 +207,7 @@ export declare class SEOMiddleware {
 Authentication token can be set via various environment variables:
 
 ```sh
-OSTRIO_AUTH='Basic xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+OSTR_AUTH='Basic xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 PRERENDER_SERVICE_AUTH='Basic xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 SPIDERABLE_SERVICE_AUTH='Basic xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 ```
