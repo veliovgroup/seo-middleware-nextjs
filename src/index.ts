@@ -103,7 +103,8 @@ export class SEOMiddleware {
     this.keepGetQuery = opts.keepGetQuery ?? true;
     this.ignoredPaths = opts.ignoredPaths ?? false;
     this.ignoredExtensions = new Set(opts.ignoredExtensions ?? IGNORE_EXTENSIONS);
-    this.botAgents = new AhoCorasick(opts.botAgents ?? BOT_AGENTS);
+    // Matching runs on the lowercased User-Agent, so patterns are lowercased too. An empty string makes the AhoCorasick constructor throw
+    this.botAgents = new AhoCorasick((opts.botAgents ?? BOT_AGENTS).map((agent) => `${agent}`.toLowerCase()).filter(Boolean));
     this.renderingBase = `${this.renderingEndpoint}/?url=`;
     this.retries = opts.retries ?? 2;
     this.debug = opts.debug || process.env.DEBUG === 'true' || false;
@@ -128,7 +129,8 @@ export class SEOMiddleware {
 
         const escapedFragment = url.searchParams.get(DICT.escapedFragment);
 
-        const ua = (req.headers.get(DICT.headers.ua) || DICT.empty).toLowerCase();
+        // Original User-Agent, sent to the renderer as is. Matching lowercases its own copy
+        const ua = req.headers.get(DICT.headers.ua) || DICT.empty;
         let fetchUrl = `${self.rootURL || url.origin}`;
         if (self.supportEscapedFragment && typeof escapedFragment === 'string') {
           url.searchParams.delete(DICT.escapedFragment);
@@ -215,7 +217,7 @@ export class SEOMiddleware {
   }
 
   private checkBot(ua: string): boolean {
-    if (!ua || !this.botAgents.match(ua)) {
+    if (!ua || !this.botAgents.match(ua.toLowerCase())) {
       this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [checkBot]', 'IGNORED: NOT A BOT');
       return false;
     }
