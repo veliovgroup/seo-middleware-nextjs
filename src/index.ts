@@ -109,7 +109,15 @@ export class SEOMiddleware {
     this.retries = opts.retries ?? 2;
     this.debug = opts.debug || process.env.DEBUG === 'true' || false;
 
-    this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [new SEOMiddleware()]', 'OK', opts);
+    // Never log `opts` as is, it holds the auth token
+    this.debug && this.logger.info('[seo-middleware-nextjs] [DEBUG] [new SEOMiddleware()]', 'OK', {
+      rootURL: this.rootURL,
+      renderingEndpoint: this.renderingEndpoint,
+      supportEscapedFragment: this.supportEscapedFragment,
+      keepGetQuery: this.keepGetQuery,
+      ignoredPaths: this.ignoredPaths,
+      retries: this.retries,
+    });
   }
 
   createMiddleware(): (req: NextRequest) => Promise<Response> {
